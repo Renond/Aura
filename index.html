@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    
+    <!-- Paramètres CRUCIAUX pour supprimer la barre Chrome/Safari -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#050505">
+    
+    <title>Aura Music</title>
+    
+    <!-- Bibliothèques -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        body { 
+            background-color: #050505; 
+            margin: 0; 
+            font-family: system-ui, -apple-system, sans-serif;
+            overflow: hidden; 
+            -webkit-tap-highlight-color: transparent;
+            height: 100vh;
+        }
+        /* Supprime le défilement rebondissant sur iOS */
+        html, body { position: fixed; width: 100%; height: 100%; }
+        
+        .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+        .safe-top { padding-top: env(safe-area-inset-top); }
+        
+        input[type="range"] { accent-color: #a855f7; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        const PLAYLIST = [
+            { id: 1, titre: "Midnight City", artiste: "M83", cover: "https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=400", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" },
+            { id: 2, titre: "Starboy", artiste: "The Weeknd", cover: "https://images.unsplash.com/photo-1493225255756-d9584f8606e9?w=400", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3" },
+            { id: 3, titre: "Weightless", artiste: "Marconi Union", cover: "https://images.unsplash.com/photo-1459749411177-042180ce673c?w=400", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3" }
+        ];
+
+        function App() {
+            const [index, setIndex] = useState(0);
+            const [isPlaying, setIsPlaying] = useState(false);
+            const [currentTime, setCurrentTime] = useState(0);
+            const [view, setView] = useState('home'); // 'home' or 'player'
+            const audioRef = useRef(null);
+            const current = PLAYLIST[index];
+
+            useEffect(() => {
+                if (isPlaying) audioRef.current.play();
+                else audioRef.current.pause();
+            }, [isPlaying, index]);
+
+            const next = () => setIndex((index + 1) % PLAYLIST.length);
+            const prev = () => setIndex((index - 1 + PLAYLIST.length) % PLAYLIST.length);
+
+            const format = (s) => {
+                const min = Math.floor(s / 60);
+                const sec = Math.floor(s % 60);
+                return `${min}:${sec < 10 ? '0' : ''}${sec}`;
+            };
+
+            return (
+                <div className="h-full w-full flex flex-col text-white">
+                    <audio 
+                        ref={audioRef} 
+                        src={current.url} 
+                        onTimeUpdate={() => setCurrentTime(audioRef.current.currentTime)}
+                        onEnded={next}
+                    />
+
+                    {/* Contenu principal */}
+                    <div className="flex-1 overflow-y-auto px-6 safe-top pb-32">
+                        {view === 'home' ? (
+                            <div className="pt-10">
+                                <h1 className="text-4xl font-black mb-8 italic tracking-tighter">AURA</h1>
+                                <p className="text-white/40 text-xs font-bold uppercase mb-4">Ma Musique</p>
+                                <div className="space-y-2">
+                                    {PLAYLIST.map((m, i) => (
+                                        <div 
+                                            key={m.id} 
+                                            onClick={() => { setIndex(i); setIsPlaying(true); }}
+                                            className={`flex items-center gap-4 p-3 rounded-3xl transition ${index === i ? 'bg-purple-600/20' : 'active:bg-white/5'}`}
+                                        >
+                                            <img src={m.cover} className="w-14 h-14 rounded-2xl object-cover" />
+                                            <div className="flex-1">
+                                                <p className={`font-bold ${index === i ? 'text-purple-400' : ''}`}>{m.titre}</p>
+                                                <p className="text-white/40 text-xs">{m.artiste}</p>
+                                            </div>
+                                            {index === i && isPlaying && <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse"></div>}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="flex flex-col items-center justify-center pt-10 h-full">
+                                <img src={current.cover} className={`w-80 h-80 rounded-[50px] shadow-2xl transition-all duration-1000 ${isPlaying ? 'scale-105' : 'scale-90 opacity-50'}`} />
+                                <div className="text-center mt-12">
+                                    <h2 className="text-3xl font-bold">{current.titre}</h2>
+                                    <p className="text-purple-400 text-lg">{current.artiste}</p>
+                                </div>
+                                <div className="w-full mt-10 space-y-2 px-4">
+                                    <div className="h-1.5 bg-white/10 rounded-full">
+                                        <div className="h-full bg-white rounded-full" style={{ width: `${(currentTime/300)*100}%` }}></div>
+                                    </div>
+                                    <div className="flex justify-between text-[10px] text-white/30 font-mono">
+                                        <span>{format(currentTime)}</span>
+                                        <span>04:00</span>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-10 mt-10">
+                                    <button onClick={prev} className="active:scale-90 transition"><i data-lucide="skip-back" className="w-8 h-8"></i></button>
+                                    <button onClick={() => setIsPlaying(!isPlaying)} className="w-24 h-24 bg-white rounded-full flex items-center justify-center text-black active:scale-95 transition">
+                                        {isPlaying ? <i data-lucide="pause" className="w-10 h-10 fill-current"></i> : <i data-lucide="play" className="w-10 h-10 fill-current ml-1"></i>}
+                                    </button>
+                                    <button onClick={next} className="active:scale-90 transition"><i data-lucide="skip-forward" className="w-8 h-8"></i></button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Mini Player Flottant */}
+                    {view === 'home' && (
+                        <div onClick={() => setView('player')} className="mx-4 mb-24 bg-white/10 backdrop-blur-3xl p-3 rounded-[32px] border border-white/10 flex items-center justify-between shadow-2xl">
+                            <div className="flex items-center gap-3">
+                                <img src={current.cover} className="w-12 h-12 rounded-2xl" />
+                                <div>
+                                    <p className="text-sm font-bold truncate w-32">{current.titre}</p>
+                                    <p className="text-[10px] text-white/40">{current.artiste}</p>
+                                </div>
+                            </div>
+                            <button onClick={(e) => { e.stopPropagation(); setIsPlaying(!isPlaying); }} className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-black">
+                                {isPlaying ? <i data-lucide="pause" className="w-6 h-6 fill-current"></i> : <i data-lucide="play" className="w-6 h-6 fill-current ml-0.5"></i>}
+                            </button>
+                        </div>
+                    )}
+
+                    {/* Navigation Basse */}
+                    <nav className="fixed bottom-0 left-0 right-0 h-24 bg-black/60 backdrop-blur-xl border-t border-white/5 flex items-center justify-around safe-bottom">
+                        <button onClick={() => setView('home')} className={`p-4 ${view === 'home' ? 'text-white' : 'text-white/20'}`}><i data-lucide="layout-grid"></i></button>
+                        <button onClick={() => setView('player')} className={`p-4 ${view === 'player' ? 'text-white' : 'text-white/20'}`}><i data-lucide="disc"></i></button>
+                    </nav>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+        setTimeout(() => lucide.createIcons(), 100);
+    </script>
+</body>
+</html>
